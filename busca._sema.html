@@ -4,19 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Busca SEMA - MPDFT</title>
-    <!-- Biblioteca para ler a planilha sem erros -->
+    <!-- Biblioteca PapaParse para leitura robusta de dados -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root { --mp-red: #C62828; --mp-gray: #37474F; --mp-light: #f4f4f4; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--mp-light); padding: 20px; margin: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--mp-light); margin: 0; padding: 20px; }
         .container { max-width: 850px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { color: var(--mp-red); text-align: center; border-bottom: 2px solid var(--mp-red); padding-bottom: 10px; margin-bottom: 10px; }
         .status-bar { font-size: 12px; color: #666; text-align: center; margin-bottom: 20px; padding: 8px; background: #eee; border-radius: 4px; }
         .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
         input, select { padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; outline: none; width: 100%; box-sizing: border-box; }
         input:focus { border-color: var(--mp-red); }
-        .result-card { border: 1px solid #ddd; border-left: 6px solid var(--mp-red); padding: 20px; margin-bottom: 15px; border-radius: 4px; background: #fff; transition: transform 0.2s; }
-        .result-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        .result-card { border: 1px solid #ddd; border-left: 6px solid var(--mp-red); padding: 20px; margin-bottom: 15px; border-radius: 4px; background: #fff; }
         .result-card h3 { margin: 0 0 10px 0; color: var(--mp-gray); font-size: 18px; }
         .btn-whatsapp { display: inline-block; margin-top: 15px; text-decoration: none; padding: 10px 20px; border-radius: 4px; color: white; font-weight: bold; background-color: #25D366; }
         .loading { text-align: center; color: var(--mp-red); padding: 40px; font-weight: bold; }
@@ -27,7 +26,7 @@
 
 <div class="container">
     <h1>Encaminhamento de Medidas Alternativas</h1>
-    <div id="status" class="status-bar">Conectando à planilha...</div>
+    <div id="status" class="status-bar">Sincronizando com a planilha...</div>
     
     <div class="filters">
         <input type="text" id="searchTxt" placeholder="Pesquisar (Promotoria, SEMA ou Telefone)..." onkeyup="filterData()">
@@ -40,7 +39,7 @@
 </div>
 
 <script>
-    // URL da sua planilha publicada como CSV
+    // Link da sua planilha publicado como CSV
     const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1hICJZHdYDwxCCCtXZ2ORmmiTOc_legGzJ82cYC_BVFk/pub?gid=1056525028&single=true&output=csv';
 
     let database = [];
@@ -51,6 +50,7 @@
             header: true,
             skipEmptyLines: true,
             complete: function(results) {
+                // Mapeia as colunas exatamente como estão no seu Google Sheets
                 database = results.data.map(row => ({
                     pj: row['Promotoria'],
                     sema: row['SEMA Responsável'],
@@ -58,7 +58,7 @@
                     tel: row['Telefone']
                 })).filter(item => item.pj);
 
-                document.getElementById('status').innerText = `Sincronizado: ${database.length} registros carregados com sucesso.`;
+                document.getElementById('status').innerText = `Sincronizado: ${database.length} registros carregados.`;
                 setupFilters();
                 renderResults(database);
             },
