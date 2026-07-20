@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Busca SEMA - MPDFT</title>
+    <!-- Biblioteca para ler a planilha sem erros -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        :root { --mp-red: #C62828; --mp-gray: #37474F; --mp-light: #f4f4f4; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--mp-light); padding: 20px; margin: 0; }
+        .container { max-width: 850px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: var(--mp-red); text-align: center; border-bottom: 2px solid var(--mp-red); padding-bottom: 10px; margin-bottom: 10px; }
+        .status-bar { font-size: 12px; color: #666; text-align: center; margin-bottom: 20px; padding: 8px; background: #eee; border-radius: 4px; }
+        .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
+        input, select { padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; outline: none; width: 100%; box-sizing: border-box; }
+        input:focus { border-color: var(--mp-red); }
+        .result-card { border: 1px solid #ddd; border-left: 6px solid var(--mp-red); padding: 20px; margin-bottom: 15px; border-radius: 4px; background: #fff; transition: transform 0.2s; }
+        .result-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        .result-card h3 { margin: 0 0 10px 0; color: var(--mp-gray); font-size: 18px; }
+        .btn-whatsapp { display: inline-block; margin-top: 15px; text-decoration: none; padding: 10px 20px; border-radius: 4px; color: white; font-weight: bold; background-color: #25D366; }
+        .loading { text-align: center; color: var(--mp-red); padding: 40px; font-weight: bold; }
+        @media (max-width: 600px) { .filters { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Encaminhamento de Medidas Alternativas</h1>
+    <div id="status" class="status-bar">Conectando à planilha...</div>
+    
+    <div class="filters">
+        <input type="text" id="searchTxt" placeholder="Pesquisar (Promotoria, SEMA ou Telefone)..." onkeyup="filterData()">
+        <select id="filterSema" onchange="filterData()">
+            <option value="">Todos os SEMAs</option>
+        </select>
+    </div>
+
+    <div id="resultsList"><p class="loading">Carregando dados em tempo real...</p></div>
+</div>
+
+<script>
+    // URL da sua planilha publicada como CSV
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1hICJZHdYDwxCCCtXZ2ORmmiTOc_legGzJ82cYC_BVFk/pub?gid=1056525028&single=true&output=csv';
+
+    let database = [];
+
+    function fetchData() {
+        Papa.parse(SHEET_URL, {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                database = results.data.map(row => ({
+                    pj: row['Promotoria'],
+                    sema: row['SEMA Responsável'],
+                    whats: row['WhatsApp'],
+                    tel: row['Telefone']
+                })).filter(item => item.pj);
+
+                document.getElementById('status').innerText = `Sincronizado: ${database.length} registros carregados com sucesso.`;
+                setupFilters();
+                renderResults(database);
+            },
+            error: function() {
+                document.getElementById('status').innerHTML = "<span style='color:red;'>Erro ao carregar dados. Verifique se a planilha está 'Publicada na Web'.</span>";
+            }
+        });
+    }
+
+    function setupFilters() {
+        const select = document.getElementById('filterSema');
+        const semas = [...new Set(database.map(item => item.sema))].filter(s => s).sort();
+        select.innerHTML = '<option value="">Todos os SEMAs</option>';
+        semas.forEach(sema => {
+            const option = document.createElement('option');
+            option.value = sema; option.textContent = sema;
+            select.appendChild(option);
+        });
+    }
+
+    function renderResults(data) {
+        const list = document.getElementById('resultsList');
+        list.innerHTML = data.length ? '' : '<p style="text-align:center;color:#888;">Nenhum registro encontrado.</p>';
+        data.forEach(item => {
+            list.innerHTML += `
+                <div class="result-card">
+                    <h3>${item.pj}</h3>
+                    <p><strong>SEMA Responsável:</strong> ${item.sema}</p>
+                    <p><strong>Contato:</strong> ${item.tel}</p>
+                    <a href="${item.whats}" target="_blank" class="btn btn-whatsapp">Falar no WhatsApp</a>
+                </div>`;
+        });
+    }
+
+    function filterData() {
+        const txt = document.getElementById('searchTxt').value.toLowerCase();
+        const semaFilter = document.getElementById('filterSema').value;
+        const filtered = database.filter(item => {
+            const matchTxt = Object.values(item).some(val => String(val).toLowerCase().includes(txt));
+            const matchSema = semaFilter === "" || item.sema === semaFilter;
+            return matchTxt && matchSema;
+        });
+        renderResults(filtered);
+    }
+
+    fetchData();
+</script>
+</body>
+</html>
